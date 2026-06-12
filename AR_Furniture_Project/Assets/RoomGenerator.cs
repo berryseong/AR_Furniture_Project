@@ -4,54 +4,48 @@ using System.Collections.Generic;
 public class RoomGenerator : MonoBehaviour
 {
     [Header("Room Dimensions (cm)")]
-    public float width = 400f;  // 가로 (X)
-    public float length = 500f; // 세로 (Z)
-    public float height = 250f; // 높이 (Y)
+    public float width = 600f;   
+    public float length = 1000f; 
+    public float height = 200f;  
+
+    [Header("Grid Settings (cm)")]
+    public float cubeSize = 100f; // 1m(100cm)로 설정. 10cm 로 설정 시 큐브가 너무 작아져서 조작이 어려움.
 
     private List<GameObject> roomParts = new List<GameObject>();
 
-    void Start()
-    {
-        // 첫 시작 시 기본 방 생성
-        GenerateRoom();
-    }
+    void Start() { GenerateRoom(); }
 
     public void GenerateRoom()
     {
-        // 1. 기존에 생성된 벽면이 있다면 삭제 (초기화)
         foreach (var part in roomParts) { if (part != null) Destroy(part); }
         roomParts.Clear();
 
-        // 2. cm 단위를 유니티 미터(m) 단위로 변환 (100cm = 1m)
         float w = width / 100f;
         float l = length / 100f;
         float h = height / 100f;
+        float thickness = 0.1f; 
 
-        // 3. 6개 면 생성 (이름, 위치, 크기, 회전)
-        // 바닥 (Floor)
-        roomParts.Add(CreatePlane("Floor", new Vector3(w/2, 0, l/2), new Vector3(w, 1, l), Quaternion.identity));
-        // 천장 (Ceiling)
-        roomParts.Add(CreatePlane("Ceiling", new Vector3(w/2, h, l/2), new Vector3(w, 1, l), Quaternion.Euler(180, 0, 0)));
-        // 벽면들
-        roomParts.Add(CreatePlane("Wall_Left", new Vector3(0, h/2, l/2), new Vector3(l, 1, h), Quaternion.Euler(0, 0, -90)));
-        roomParts.Add(CreatePlane("Wall_Right", new Vector3(w, h/2, l/2), new Vector3(l, 1, h), Quaternion.Euler(0, 0, 90)));
-        roomParts.Add(CreatePlane("Wall_Front", new Vector3(w/2, h/2, l), new Vector3(w, 1, h), Quaternion.Euler(-90, 0, 0)));
-        roomParts.Add(CreatePlane("Wall_Back", new Vector3(w/2, h/2, 0), new Vector3(w, 1, h), Quaternion.Euler(90, 0, 0)));
+        // 벽 생성
+        roomParts.Add(CreateWall("Floor", new Vector3(w/2, -thickness/2, l/2), new Vector3(w, thickness, l)));
+        roomParts.Add(CreateWall("Wall_Left", new Vector3(-thickness/2, h/2, l/2), new Vector3(thickness, h, l)));
+        roomParts.Add(CreateWall("Wall_Right", new Vector3(w + thickness/2, h/2, l/2), new Vector3(thickness, h, l)));
+        roomParts.Add(CreateWall("Wall_Back", new Vector3(w/2, h/2, -thickness/2), new Vector3(w, h, thickness)));
     }
 
-    GameObject CreatePlane(string name, Vector3 pos, Vector3 scale, Quaternion rot)
+    GameObject CreateWall(string name, Vector3 pos, Vector3 scale)
     {
-        GameObject p = GameObject.CreatePrimitive(PrimitiveType.Plane);
-        p.name = name;
-        p.transform.parent = this.transform;
-        p.transform.position = pos;
-        p.transform.rotation = rot;
-        // Plane의 기본 크기가 10m x 10m이므로 0.1을 곱해 수치를 맞춥니다.
-        p.transform.localScale = new Vector3(scale.x / 10f, 1, scale.z / 10f);
-        return p;
+        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        cube.name = name;
+        cube.transform.parent = this.transform;
+        cube.transform.position = pos;
+        cube.transform.localScale = scale;
+        
+        Material mat = Resources.Load<Material>("WallMat");
+        if(mat != null) cube.GetComponent<Renderer>().material = mat;
+
+        return cube;
     }
 
-    // UI 연결용 함수들
     public void SetWidth(string val) { if(float.TryParse(val, out width)) GenerateRoom(); }
     public void SetLength(string val) { if(float.TryParse(val, out length)) GenerateRoom(); }
     public void SetHeight(string val) { if(float.TryParse(val, out height)) GenerateRoom(); }
